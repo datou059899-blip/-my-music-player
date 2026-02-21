@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音乐播放器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Noto Sans SC', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #e8e8e8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .player {
+      width: 100%;
+      max-width: 380px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .cover-wrap {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cover-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .cover-wrap .placeholder {
+      font-size: 64px;
+      opacity: 0.5;
+    }
+    .info {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .artist {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    .progress-wrap {
+      margin-bottom: 20px;
+    }
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 6px;
+    }
+    .progress-bar {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #e94560, #ff6b6b);
+      border-radius: 3px;
+      transition: width 0.1s linear;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .btn {
+      width: 48px;
+      height: 48px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.05);
+    }
+    .btn-play {
+      width: 56px;
+      height: 56px;
+      font-size: 1.6rem;
+      background: linear-gradient(135deg, #e94560, #ff6b6b);
+    }
+    .btn-play:hover {
+      background: linear-gradient(135deg, #ff6b6b, #e94560);
+      box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+    }
+    .volume-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .volume-wrap .icon {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.6);
+      width: 24px;
+    }
+    .volume-wrap input[type="range"] {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+      outline: none;
+    }
+    .volume-wrap input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #e94560;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .volume-wrap input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    .playlist {
+      margin-top: 24px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .playlist-title {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 10px;
+      padding-left: 4px;
+    }
+    .playlist-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+      transition: background 0.2s;
+    }
+    .playlist-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .playlist-item.active {
+      background: rgba(233, 69, 96, 0.25);
+      color: #ff6b6b;
+    }
+    .playlist-item .num {
+      width: 20px;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.8rem;
+    }
+    .playlist-item.active .num {
+      color: #ff6b6b;
+    }
+    .add-file {
+      margin-top: 16px;
+      text-align: center;
+    }
+    .add-file input {
+      display: none;
+    }
+    .add-file label {
+      display: inline-block;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+      transition: background 0.2s;
+    }
+    .add-file label:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .search-wrap {
+      margin-bottom: 20px;
+    }
+    .search-row {
+      display: flex;
+      gap: 8px;
+    }
+    .search-row input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .search-row input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+    .search-row input:focus {
+      border-color: #e94560;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .search-row button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #e94560, #ff6b6b);
+      color: #fff;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .search-row button:hover {
+      opacity: 0.95;
+      transform: scale(1.02);
+    }
+    .search-row button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .search-result-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-bottom: 6px;
+      transition: background 0.2s;
+    }
+    .search-result-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .search-result-item .thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: rgba(0,0,0,0.2);
+    }
+    .search-result-item .meta {
+      flex: 1;
+      min-width: 0;
+    }
+    .search-result-item .meta .name {
+      font-size: 0.95rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-result-item .meta .artist {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.5);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-result-item .duration {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.4);
+    }
+    .search-result-item .play-ico {
+      font-size: 1.2rem;
+      opacity: 0.8;
+    }
+    .search-loading, .search-empty, .search-err {
+      text-align: center;
+      padding: 16px;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.9rem;
+    }
+    .search-err { color: #ff6b6b; }
+    .section-label {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 8px;
+      padding-left: 4px;
+    }
+    .debug-panel {
+      margin-top: 20px;
+      padding: 12px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 12px;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .debug-panel h4 {
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+      color: rgba(255,255,255,0.7);
+    }
+    .debug-panel .line {
+      word-break: break-all;
+      margin-bottom: 4px;
+    }
+    .debug-panel .err { color: #ff6b6b; }
+    .debug-panel .ok { color: #6bcf7f; }
+    .debug-panel button {
+      margin-top: 8px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+    }
+    .debug-panel button:hover { background: rgba(255,255,255,0.25); }
+  </style>
+</head>
+<body>
+  <div class="player">
+    <div class="search-wrap">
+      <div class="search-row">
+        <input type="text" id="searchInput" placeholder="搜索歌曲、歌手..." autocomplete="off">
+        <button type="button" id="searchBtn">搜索</button>
+      </div>
+      <div class="section-label">搜索结果（在线播放，来源 Audius）</div>
+      <div id="searchResults"></div>
+    </div>
+    <div class="cover-wrap" id="coverWrap">
+      <span class="placeholder" id="coverPlaceholder">♪</span>
+      <img id="coverImg" alt="" style="display:none;">
+    </div>
+    <div class="info">
+      <div class="title" id="title">选择音乐</div>
+      <div class="artist" id="artist">添加本地音频文件</div>
+    </div>
+    <div class="progress-wrap">
+      <div class="time-row">
+        <span id="currentTime">0:00</span>
+        <span id="duration">0:00</span>
+      </div>
+      <div class="progress-bar" id="progressBar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="prevBtn" title="上一首">⏮</button>
+      <button class="btn btn-play" id="playBtn" title="播放/暂停">▶</button>
+      <button class="btn" id="nextBtn" title="下一首">⏭</button>
+    </div>
+    <div class="volume-wrap">
+      <span class="icon">🔊</span>
+      <input type="range" id="volume" min="0" max="1" step="0.01" value="0.7" title="音量">
+    </div>
+    <div class="playlist">
+      <div class="playlist-title">播放列表（当前队列）</div>
+      <div id="playlist"></div>
+    </div>
+    <div class="add-file">
+      <input type="file" id="fileInput" accept="audio/*" multiple>
+      <label for="fileInput">+ 添加本地音乐</label>
+    </div>
+    <div class="debug-panel">
+      <h4>🔍 播放调试信息（用于排查无法播放）</h4>
+      <div id="debugLog"></div>
+      <p class="line" style="margin-top:8px;color:rgba(255,255,255,0.5);font-size:0.75rem;">
+        常见错误：MEDIA_ERR_NETWORK=网络/跨域问题；MEDIA_ERR_SRC_NOT_SUPPORTED=地址无法加载。复制上方信息可发给开发者排查。
+      </p>
+      <button type="button" id="copyDebugBtn">复制上述信息</button>
+    </div>
+  </div>
+  <audio id="audio"></audio>
+
+  <script>
+    const audio = document.getElementById('audio');
+    const playBtn = document.getElementById('playBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationEl = document.getElementById('duration');
+    const titleEl = document.getElementById('title');
+    const artistEl = document.getElementById('artist');
+    const volumeEl = document.getElementById('volume');
+    const playlistEl = document.getElementById('playlist');
+    const fileInput = document.getElementById('fileInput');
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const searchResultsEl = document.getElementById('searchResults');
+    const coverPlaceholder = document.getElementById('coverPlaceholder');
+    const coverImg = document.getElementById('coverImg');
+    const debugLogEl = document.getElementById('debugLog');
+    const copyDebugBtn = document.getElementById('copyDebugBtn');
+
+    const AUDIUS_API = 'https://api.audius.co';
+    const CORS_PROXIES = [
+      'https://corsproxy.io/?',
+      'https://api.allorigins.win/raw?url='
+    ];
+
+    let playlist = [];
+    let currentIndex = 0;
+    let isDragging = false;
+    let currentBlobUrl = null;
+    const debugLines = [];
+
+    function revokeCurrentBlob() {
+      if (currentBlobUrl) {
+        try { URL.revokeObjectURL(currentBlobUrl); } catch (e) {}
+        currentBlobUrl = null;
+      }
+    }
+
+    function debug(msg, isError) {
+      const ts = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+      const line = '[' + ts + '] ' + msg;
+      debugLines.push(line);
+      if (debugLines.length > 20) debugLines.shift();
+      debugLogEl.innerHTML = debugLines.map(s => {
+        const cls = s.indexOf('失败') >= 0 || s.indexOf('错误') >= 0 || s.indexOf('ERR') >= 0 ? 'err' : (s.indexOf('成功') >= 0 || s.indexOf('播放') === 0 ? 'ok' : '');
+        return '<div class="line ' + cls + '">' + escapeHtml(s) + '</div>';
+      }).join('');
+      debugLogEl.scrollTop = debugLogEl.scrollHeight;
+      if (isError) console.error(msg); else console.log(msg);
+    }
+
+    copyDebugBtn.addEventListener('click', () => {
+      const text = '播放调试信息\n' + debugLines.join('\n');
+      navigator.clipboard.writeText(text).then(() => { debug('已复制到剪贴板'); }, () => { debug('复制失败，请手动选择上方文字复制', true); });
+    });
+
+    function formatTime(seconds) {
+      if (!isFinite(seconds) || isNaN(seconds)) return '0:00';
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function setCover(url) {
+      if (url) {
+        coverImg.src = url;
+        coverImg.style.display = 'block';
+        coverPlaceholder.style.display = 'none';
+      } else {
+        coverImg.style.display = 'none';
+        coverImg.removeAttribute('src');
+        coverPlaceholder.style.display = 'block';
+      }
+    }
+
+    function setAudioSourceAndPlay(src, isCrossOrigin) {
+      revokeCurrentBlob();
+      const short = src.length > 60 ? src.slice(0, 60) + '...' : src;
+      debug('设置音频源: ' + short);
+      if (isCrossOrigin) {
+        audio.crossOrigin = 'anonymous';
+      } else {
+        audio.removeAttribute('crossOrigin');
+      }
+      audio.src = src;
+      audio.load();
+      const p = audio.play();
+      if (p && typeof p.then === 'function') p.catch(e => { debug('audio.play() 失败: ' + (e && e.message) + '', true); });
+    }
+
+    async function loadTrack(index) {
+      if (playlist.length === 0) return;
+      revokeCurrentBlob();
+      currentIndex = (index + playlist.length) % playlist.length;
+      const item = playlist[currentIndex];
+      titleEl.textContent = item.name;
+      artistEl.textContent = item.artist || '未知艺术家';
+      setCover(item.artwork || null);
+      currentTimeEl.textContent = '0:00';
+      durationEl.textContent = formatTime(item.duration != null ? item.duration : 0);
+      progressFill.style.width = '0%';
+      playBtn.textContent = '⏸';
+      renderPlaylist();
+      debug('点击播放: ' + item.name + (item.trackId ? ' (在线)' : ' (本地)'));
+
+      if (item.trackId) {
+        let resolved = false;
+        try {
+          debug('正在请求 Audius 解析流地址...');
+          const res = await fetch(
+            `${AUDIUS_API}/v1/tracks/${item.trackId}/stream?no_redirect=true`,
+            { method: 'GET', headers: { Accept: 'application/json' } }
+          );
+          if (res.ok) {
+            const json = await res.json();
+            const streamUrl = json && (json.data || json);
+            if (typeof streamUrl === 'string' && streamUrl.startsWith('http')) {
+              debug('解析成功，使用 CDN 流地址（已开启跨域请求）');
+              setAudioSourceAndPlay(streamUrl, true);
+              resolved = true;
+            } else {
+              debug('解析返回格式异常: ' + (typeof streamUrl), true);
+            }
+          } else {
+            debug('解析请求失败 HTTP ' + res.status, true);
+          }
+        } catch (e) {
+          debug('请求 Audius 失败: ' + (e.message || e) + '（可能被墙或网络问题）', true);
+        }
+        if (!resolved) {
+          playViaProxyAsBlob(item, 0);
+        }
+      } else {
+        setAudioSourceAndPlay(item.url);
+      }
+    }
+
+    function playViaProxyAsBlob(item, proxyIndex) {
+      if (proxyIndex >= CORS_PROXIES.length) {
+        debug('所有代理均失败', true);
+        showPlayError();
+        return;
+      }
+      lastTriedProxyIndex = proxyIndex;
+      const proxyUrl = CORS_PROXIES[proxyIndex] + encodeURIComponent(item.url);
+      debug('通过代理拉取音频再播放: ' + (CORS_PROXIES[proxyIndex].split('/')[2] || 'proxy'));
+      fetch(proxyUrl)
+        .then(r => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const ct = (r.headers.get('content-type') || '').toLowerCase();
+          if (ct.indexOf('audio') < 0 && ct.indexOf('octet') < 0 && ct.indexOf('mpeg') < 0) {
+            throw new Error('代理返回可能非音频，Content-Type: ' + (ct || '空'));
+          }
+          return r.blob();
+        })
+        .then(blob => {
+          revokeCurrentBlob();
+          currentBlobUrl = URL.createObjectURL(blob);
+          audio.removeAttribute('crossOrigin');
+          audio.src = currentBlobUrl;
+          audio.load();
+          return audio.play();
+        })
+        .then(() => { debug('代理拉取成功，开始播放'); })
+        .catch(e => {
+          debug('代理拉取失败: ' + (e.message || e), true);
+          playViaProxyAsBlob(item, proxyIndex + 1);
+        });
+    }
+
+    function renderPlaylist() {
+      playlistEl.innerHTML = playlist.map((item, i) => `
+        <div class="playlist-item ${i === currentIndex ? 'active' : ''}" data-index="${i}">
+          <span class="num">${i + 1}</span>
+          <span>${item.name}</span>
+        </div>
+      `).join('');
+      playlistEl.querySelectorAll('.playlist-item').forEach(el => {
+        el.addEventListener('click', () => loadTrack(parseInt(el.dataset.index, 10)));
+      });
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (playlist.length === 0) {
+        fileInput.click();
+        return;
+      }
+      if (audio.paused) {
+        audio.play();
+        playBtn.textContent = '⏸';
+      } else {
+        audio.pause();
+        playBtn.textContent = '▶';
+      }
+    });
+
+    prevBtn.addEventListener('click', () => {
+      if (playlist.length) loadTrack(currentIndex - 1);
+    });
+    nextBtn.addEventListener('click', () => {
+      if (playlist.length) loadTrack(currentIndex + 1);
+    });
+
+    audio.addEventListener('timeupdate', () => {
+      if (isDragging) return;
+      const p = (audio.currentTime / audio.duration) * 100;
+      progressFill.style.width = (isNaN(p) ? 0 : p) + '%';
+      currentTimeEl.textContent = formatTime(audio.currentTime);
+    });
+    audio.addEventListener('loadedmetadata', () => {
+      durationEl.textContent = formatTime(audio.duration);
+    });
+    audio.addEventListener('ended', () => {
+      loadTrack(currentIndex + 1);
+    });
+    audio.addEventListener('play', () => { playBtn.textContent = '⏸'; debug('播放成功'); });
+    audio.addEventListener('pause', () => { playBtn.textContent = '▶'; });
+
+    let lastTriedProxyIndex = -1;
+
+    audio.addEventListener('error', () => {
+      const err = audio.error;
+      const code = err ? err.code : '?';
+      const msg = err ? err.message : '';
+      const codeMap = { 1: 'MEDIA_ERR_ABORTED', 2: 'MEDIA_ERR_NETWORK', 3: 'MEDIA_ERR_DECODE', 4: 'MEDIA_ERR_SRC_NOT_SUPPORTED' };
+      const codeStr = codeMap[code] || ('code=' + code);
+      const src = (audio.src || '').slice(0, 80);
+      debug('音频加载失败: ' + codeStr + ' ' + msg + ' | src: ' + src, true);
+
+      const item = playlist[currentIndex];
+      if (!item || !item.trackId || !item.url) {
+        showPlayError();
+        return;
+      }
+      const srcFull = audio.src || '';
+      if (srcFull.indexOf('blob:') === 0) {
+        debug('代理拉取的音频仍无法播放，尝试下一个代理');
+        playViaProxyAsBlob(item, lastTriedProxyIndex + 1);
+      } else {
+        debug('直接/CDN 失败，改为通过代理拉取音频再播放');
+        playViaProxyAsBlob(item, 0);
+      }
+    });
+
+    function showPlayError() {
+      debug('最终无法播放，已停止');
+      playBtn.textContent = '▶';
+      durationEl.textContent = durationEl.textContent || '0:00';
+      currentTimeEl.textContent = '0:00';
+      progressFill.style.width = '0%';
+    }
+
+    progressBar.addEventListener('click', (e) => {
+      if (!audio.duration) return;
+      const rect = progressBar.getBoundingClientRect();
+      const percent = (e.clientX - rect.left) / rect.width;
+      audio.currentTime = percent * audio.duration;
+      progressFill.style.width = (percent * 100) + '%';
+      currentTimeEl.textContent = formatTime(audio.currentTime);
+    });
+
+    volumeEl.addEventListener('input', () => {
+      audio.volume = volumeEl.value;
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files || []);
+      files.forEach(file => {
+        if (!file.type.startsWith('audio/')) return;
+        playlist.push({
+          name: file.name.replace(/\.[^/.]+$/, ''),
+          artist: '本地文件',
+          url: URL.createObjectURL(file)
+        });
+      });
+      if (playlist.length && !audio.src) loadTrack(0);
+      renderPlaylist();
+      fileInput.value = '';
+    });
+
+    function buildStreamUrl(trackId) {
+      return `${AUDIUS_API}/v1/tracks/${trackId}/stream`;
+    }
+
+    async function searchMusic() {
+      const q = (searchInput.value || '').trim();
+      if (!q) return;
+      searchResultsEl.innerHTML = '<div class="search-loading">搜索中…</div>';
+      searchBtn.disabled = true;
+      try {
+        const res = await fetch(
+          `${AUDIUS_API}/v1/tracks/search?query=${encodeURIComponent(q)}&limit=20`,
+          { method: 'GET', headers: { Accept: 'application/json' } }
+        );
+        if (!res.ok) throw new Error('搜索失败');
+        const data = await res.json();
+        const list = (data.data || []).filter(t => t.is_streamable !== false);
+        if (list.length === 0) {
+          searchResultsEl.innerHTML = '<div class="search-empty">未找到可播放的歌曲，换关键词试试</div>';
+          return;
+        }
+        const items = list.map(t => {
+          const streamUrl = buildStreamUrl(t.id);
+          return {
+            trackId: t.id,
+            name: t.title || '未知',
+            artist: (t.user && t.user.name) || '未知艺术家',
+            url: streamUrl,
+            artwork: (t.artwork && (t.artwork['480x480'] || t.artwork['150x150'])) || null,
+            duration: t.duration
+          };
+        });
+        searchResultsEl.innerHTML = items.map((item, i) => `
+          <div class="search-result-item" data-index="${i}">
+            ${item.artwork ? `<img class="thumb" src="${escapeHtml(item.artwork)}" alt="">` : '<div class="thumb"></div>'}
+            <div class="meta">
+              <div class="name">${escapeHtml(item.name)}</div>
+              <div class="artist">${escapeHtml(item.artist)}</div>
+            </div>
+            <span class="duration">${formatTime(item.duration || 0)}</span>
+            <span class="play-ico">▶</span>
+          </div>
+        `).join('');
+        searchResultsEl.querySelectorAll('.search-result-item').forEach(el => {
+          el.addEventListener('click', () => {
+            playlist = items.slice();
+            loadTrack(parseInt(el.dataset.index, 10));
+          });
+        });
+      } catch (err) {
+        searchResultsEl.innerHTML = '<div class="search-err">搜索失败，请检查网络或稍后重试</div>';
+      } finally {
+        searchBtn.disabled = false;
+      }
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    searchBtn.addEventListener('click', searchMusic);
+    searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchMusic(); });
+
+    volumeEl.dispatchEvent(new Event('input'));
+    debug('就绪。请先搜索歌曲，再点击某一首查看调试信息。');
+  </script>
+</body>
+</html>
